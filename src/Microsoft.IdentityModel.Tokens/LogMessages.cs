@@ -121,7 +121,7 @@ namespace Microsoft.IdentityModel.Tokens
         public const string IDX10607 = "IDX10607: Decryption skipping key: '{0}', both validationParameters.CryptoProviderFactory and key.CryptoProviderFactory are null.";
         // public const string IDX10608 = "IDX10608:";
         public const string IDX10609 = "IDX10609: Decryption failed. No Keys tried: token: '{0}'.";
-        public const string IDX10610 = "IDX10610: Decryption failed. Could not create decryption provider. Key: '{0}', Algorithm: '{1}'.";
+        //public const string IDX10610 = "IDX10610: Decryption failed. Could not create decryption provider. Key: '{0}', Algorithm: '{1}'.";
         public const string IDX10611 = "IDX10611: Decryption failed. Encryption is not supported for: Algorithm: '{0}', SecurityKey: '{1}'.";
         public const string IDX10612 = "IDX10612: Decryption failed. Header.Enc is null or empty, it must be specified.";
         // public const string IDX10613 = "IDX10613:";

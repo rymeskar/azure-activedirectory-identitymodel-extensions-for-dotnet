@@ -870,8 +870,6 @@ namespace Microsoft.IdentityModel.Protocols.SignedHttpRequest.Tests
             return new SignedHttpRequestValidationContext(SignedHttpRequestToken is JsonWebToken jwt ? jwt.EncodedToken : "dummy", httpRequestData, SignedHttpRequestTestUtils.DefaultTokenValidationParameters, SignedHttpRequestValidationParameters, callContext);
         }
 
-        public CallContext CallContext { get; set; } = new CallContext();
-
         internal JObject ConfirmationClaim { get; set; }
 
         public string MethodToCall { get; set; }

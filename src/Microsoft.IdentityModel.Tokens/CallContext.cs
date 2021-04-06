@@ -52,7 +52,7 @@ namespace Microsoft.IdentityModel.Tokens
         }
 
         /// <summary>
-        /// Gets or set a <see cref="Guid"/> that will be used in the call to EventSource.SetCurrentThreadActivityId before logging.
+        /// Gets or sets a <see cref="Guid"/> that will be used in the call to EventSource.SetCurrentThreadActivityId before logging.
         /// </summary>
         public Guid ActivityId { get; set; } = Guid.Empty;
 
@@ -61,6 +61,11 @@ namespace Microsoft.IdentityModel.Tokens
         /// Useful when debugging.
         /// </summary>
         public bool CaptureLogs { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value that can be used for debugging.
+        /// </summary>
+        public string DebuggingId { get; set; }
 
         /// <summary>
         /// The collection of logs associated with a request. Use <see cref="CaptureLogs"/> to control capture.
