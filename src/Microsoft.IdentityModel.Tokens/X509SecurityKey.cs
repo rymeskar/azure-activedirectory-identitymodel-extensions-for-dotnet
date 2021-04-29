@@ -177,9 +177,6 @@ namespace Microsoft.IdentityModel.Tokens
             get; private set;
         }
 
-        internal override string InternalId => X5t;
-
-
         /// <summary>
         /// Determines whether the <see cref="X509SecurityKey"/> can compute a JWK thumbprint.
         /// </summary>
