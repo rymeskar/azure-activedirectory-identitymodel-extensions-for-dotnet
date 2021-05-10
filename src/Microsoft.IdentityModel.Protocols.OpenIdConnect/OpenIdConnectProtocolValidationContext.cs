@@ -25,7 +25,6 @@
 //
 //------------------------------------------------------------------------------
 
-using System;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace Microsoft.IdentityModel.Protocols.OpenIdConnect
