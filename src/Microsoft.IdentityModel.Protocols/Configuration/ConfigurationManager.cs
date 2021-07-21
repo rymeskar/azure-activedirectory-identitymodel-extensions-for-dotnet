@@ -40,7 +40,7 @@ namespace Microsoft.IdentityModel.Protocols
     /// </summary>
     /// <typeparam name="T">The type of <see cref="IDocumentRetriever"/>.</typeparam>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
-    public class ConfigurationManager<T> : IConfigurationManager<T> where T : class
+    public class ConfigurationManager<T> : ConfigurationManager, IConfigurationManager<T> where T : class
     {
         /// <summary>
         /// 12 hours is the default time interval that afterwards, <see cref="GetConfigurationAsync()"/> will obtain new configuration.
