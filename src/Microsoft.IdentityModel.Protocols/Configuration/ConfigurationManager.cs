@@ -40,7 +40,7 @@ namespace Microsoft.IdentityModel.Protocols
     /// </summary>
     /// <typeparam name="T">The type of <see cref="IDocumentRetriever"/>.</typeparam>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
-    public class ConfigurationManager<T> : ConfigurationManager, IConfigurationManager<T> where T : class
+    public class ConfigurationManager<T> : ConfigurationManager, IConfigurationManager<T> where T : Configuration
     {
         /// <summary>
         /// 12 hours is the default time interval that afterwards, <see cref="GetConfigurationAsync()"/> will obtain new configuration.
@@ -175,6 +175,58 @@ namespace Microsoft.IdentityModel.Protocols
         /// <returns>Configuration of type T.</returns>
         /// <remarks>If the time since the last call is less than <see cref="AutomaticRefreshInterval"/> then <see cref="IConfigurationRetriever{T}.GetConfigurationAsync"/> is not called and the current Configuration is returned.</remarks>
         public async Task<T> GetConfigurationAsync(CancellationToken cancel)
+        {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
+            if (_currentConfiguration != null && _syncAfter > now)
+            {
+                return _currentConfiguration;
+            }
+
+            await _refreshLock.WaitAsync(cancel).ConfigureAwait(false);
+            try
+            {
+                if (_syncAfter <= now)
+                {
+                    try
+                    {
+                        // Don't use the individual CT here, this is a shared operation that shouldn't be affected by an individual's cancellation.
+                        // The transport should have it's own timeouts, etc..
+                        _currentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false);
+                        Contract.Assert(_currentConfiguration != null);
+                        _lastRefresh = now;
+                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval);
+                    }
+                    catch (Exception ex)
+                    {
+                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval < _refreshInterval ? _automaticRefreshInterval : _refreshInterval);
+                        if (_currentConfiguration == null) // Throw an exception if there's no configuration to return.
+                            throw LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX20803, (_metadataAddress ?? "null")), ex));
+                        else
+                            LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX20806, (_metadataAddress ?? "null")), ex));
+                    }
+                }
+
+                // Stale metadata is better than no metadata
+                if (_currentConfiguration != null)
+                    return _currentConfiguration;
+                else
+                {
+                    throw LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX20803, (_metadataAddress ?? "null"))));
+                }
+            }
+            finally
+            {
+                _refreshLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Obtains an updated version of Configuration.
+        /// </summary>
+        /// <param name="cancel">CancellationToken</param>
+        /// <returns>Configuration of type T.</returns>
+        /// <remarks>If the time since the last call is less than <see cref="AutomaticRefreshInterval"/> then <see cref="IConfigurationRetriever{T}.GetConfigurationAsync"/> is not called and the current Configuration is returned.</remarks>
+        public override async Task<Configuration> GetGenericConfigurationAsync(CancellationToken cancel)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
             if (_currentConfiguration != null && _syncAfter > now)

@@ -26,6 +26,9 @@
 //------------------------------------------------------------------------------
 
 
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Microsoft.IdentityModel.Tokens
 {
     /// <summary>
@@ -38,5 +41,11 @@ namespace Microsoft.IdentityModel.Tokens
         private Configuration _currentConfiguration;
         private Configuration _lkgConfiguration;
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="cancel"></param>
+        /// <returns></returns>
+        public abstract Task<Configuration> GetGenericConfigurationAsync(CancellationToken cancel);
     }
 }
