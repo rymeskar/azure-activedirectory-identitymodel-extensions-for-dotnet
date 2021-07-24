@@ -32,6 +32,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.IdentityModel.Json;
 using Microsoft.IdentityModel.Json.Linq;
 using Microsoft.IdentityModel.Logging;
@@ -946,7 +947,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <param name="validationParameters">A <see cref="TokenValidationParameters"/>  required for validation.</param>
         /// <param name="configurationManager">A <see cref="ConfigurationManager"/> required for obtaining the issuer and signing keys for validation.</param>
         /// <returns>A <see cref="TokenValidationResult"/></returns>
-        public virtual async TokenValidationResult ValidateTokenAsync(string token, TokenValidationParameters validationParameters, ConfigurationManager configurationManager)
+        public virtual async Task<TokenValidationResult> ValidateTokenAsync(string token, TokenValidationParameters validationParameters, ConfigurationManager configurationManager)
         {
             if (string.IsNullOrEmpty(token))
                 return new TokenValidationResult { Exception = LogHelper.LogArgumentNullException(nameof(token)), IsValid = false };
@@ -1027,7 +1028,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                     var decryptedJwt = DecryptToken(jwtToken, validationParameters);
                     var innerToken = ValidateSignature(decryptedJwt, validationParameters, null);
                     jwtToken.InnerToken = innerToken;
-                    var innerTokenValidationResult = ValidateTokenPayload(innerToken, validationParameters);
+                    var innerTokenValidationResult = ValidateTokenPayload(innerToken, validationParameters, null);
                     return new TokenValidationResult
                     {
                         SecurityToken = jwtToken,
@@ -1039,7 +1040,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 else
                 {
                     var jsonWebToken = ValidateSignature(token, validationParameters, null);
-                    return ValidateTokenPayload(jsonWebToken, validationParameters);
+                    return ValidateTokenPayload(jsonWebToken, validationParameters, null);
                 }
             }
             catch (Exception ex)
@@ -1090,7 +1091,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens
 
             if (validationParameters.SignatureValidator != null)
             {
-                var validatedToken = validationParameters.SignatureValidator(token, validationParameters);
+                SecurityToken validatedToken;
+                if (configuration != null)
+                    validatedToken = validationParameters.SignatureValidator(token, validationParameters, configuration);
+                else
+                    validatedToken = validationParameters.SignatureValidator(token, validationParameters);
+
                 if (validatedToken == null)
                     throw LogHelper.LogExceptionMessage(new SecurityTokenInvalidSignatureException(LogHelper.FormatInvariant(TokenLogMessages.IDX10505, token)));
 
@@ -1131,11 +1137,14 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             IEnumerable<SecurityKey> keys = null;
             if (validationParameters.IssuerSigningKeyResolver != null)
             {
-                keys = validationParameters.IssuerSigningKeyResolver(token, jwtToken, jwtToken.Kid, validationParameters);
+                if (configuration != null)
+                    keys = validationParameters.IssuerSigningKeyResolver(token, jwtToken, jwtToken.Kid, validationParameters, configuration);
+                else
+                    keys = validationParameters.IssuerSigningKeyResolver(token, jwtToken, jwtToken.Kid, validationParameters);
             }
             else
             {
-                var key = JwtTokenUtilities.ResolveTokenSigningKey(jwtToken.Kid, jwtToken.X5t, validationParameters);
+                var key = JwtTokenUtilities.ResolveTokenSigningKey(jwtToken.Kid, jwtToken.X5t, validationParameters, configuration);
                 if (key != null)
                 {
                     kidMatched = true;
@@ -1149,7 +1158,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 // 1. User specified delegate: IssuerSigningKeyResolver returned null
                 // 2. ResolveIssuerSigningKey returned null
                 // Try all the keys. This is the degenerate case, not concerned about perf.
-                keys = TokenUtilities.GetAllSigningKeys(validationParameters);
+                keys = TokenUtilities.GetAllSigningKeys(validationParameters, configuration);
             }
 
             // keep track of exceptions thrown, keys that were tried
@@ -1173,7 +1182,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 {
                     try
                     {
-                        if (ValidateSignature(encodedBytes, signatureBytes, key, jwtToken.Alg, jwtToken, validationParameters))
+                        if (ValidateSignature(encodedBytes, signatureBytes, key, jwtToken.Alg, jwtToken, validationParameters, configuration))
                         {
                             LogHelper.LogInformation(TokenLogMessages.IDX10242, token);
                             jwtToken.SigningKey = key;
@@ -1209,6 +1218,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                     expires,
                     jwtToken.Kid,
                     validationParameters,
+                    configuration,
                     exceptionStrings);
             }
 
