@@ -192,6 +192,64 @@ namespace Microsoft.IdentityModel.Tokens
             return false;
         }
 
+        // TODO: overloaded method, may need to take a ConfigurationManager instead of a Configuration
+
+        /// <summary>
+        /// Determines if an issuer found in a <see cref="SecurityToken"/> is valid.
+        /// </summary>
+        /// <param name="issuer">The issuer to validate</param>
+        /// <param name="securityToken">The <see cref="SecurityToken"/> that is being validated.</param>
+        /// <param name="validationParameters"><see cref="TokenValidationParameters"/> required for validation.</param>
+        /// <param name="config">The <see cref="Configuration"/> required for signature, signing key, and issuer validation. </param>
+        /// <returns>The issuer to use when creating the "Claim"(s) in a "ClaimsIdentity".</returns>
+        /// <exception cref="ArgumentNullException">If 'vaidationParameters' is null.</exception>
+        /// <exception cref="ArgumentNullException">If 'issuer' is null or whitespace and <see cref="TokenValidationParameters.ValidateIssuer"/> is true.</exception>
+        /// <exception cref="SecurityTokenInvalidIssuerException">If <see cref="TokenValidationParameters.ValidIssuer"/> is null or whitespace and <see cref="TokenValidationParameters.ValidIssuers"/> is null.</exception>
+        /// <exception cref="SecurityTokenInvalidIssuerException">If 'issuer' failed to matched either <see cref="TokenValidationParameters.ValidIssuer"/> or one of <see cref="TokenValidationParameters.ValidIssuers"/>.</exception>
+        /// <remarks>An EXACT match is required.</remarks>
+        public static string ValidateIssuer(string issuer, SecurityToken securityToken, TokenValidationParameters validationParameters, Configuration config)
+        {
+            if (validationParameters == null)
+                throw LogHelper.LogArgumentNullException(nameof(validationParameters));
+
+            if (config == null)
+                throw LogHelper.LogArgumentNullException(nameof(config));
+
+            if (validationParameters.IssuerValidator != null)
+                return validationParameters.IssuerValidator(issuer, securityToken, validationParameters, config);
+
+            if (!validationParameters.ValidateIssuer)
+            {
+                LogHelper.LogInformation(LogMessages.IDX10235);
+                return issuer;
+            }
+
+            if (string.IsNullOrWhiteSpace(issuer))
+                throw LogHelper.LogExceptionMessage(new SecurityTokenInvalidIssuerException(LogMessages.IDX10211)
+                { InvalidIssuer = issuer });
+
+            // Throw if all possible places to validate against are null or empty
+            if (string.IsNullOrWhiteSpace(validationParameters.ValidIssuer) && (validationParameters.ValidIssuers == null) && string.IsNullOrWhiteSpace(config.Issuer))
+                throw LogHelper.LogExceptionMessage(new SecurityTokenInvalidIssuerException(LogMessages.IDX10204)
+                { InvalidIssuer = issuer });
+
+            // TODO: Validate using config
+            if (string.Equals(config.Issuer, issuer, StringComparison.Ordinal))
+            {
+                LogHelper.LogInformation(LogMessages.IDX10236, issuer);
+                return issuer;
+            } else
+            {
+                // get new config
+                // validate signature again
+                // validate issuer again
+            }
+
+            // method contains issuer validation code that is shared between the two overloaded ValidateIssuer() methods
+            return ValidateIssuerPrivate(issuer, validationParameters, config);
+        }
+
+
         /// <summary>
         /// Determines if an issuer found in a <see cref="SecurityToken"/> is valid.
         /// </summary>
@@ -220,13 +278,18 @@ namespace Microsoft.IdentityModel.Tokens
 
             if (string.IsNullOrWhiteSpace(issuer))
                 throw LogHelper.LogExceptionMessage(new SecurityTokenInvalidIssuerException(LogMessages.IDX10211)
-                    { InvalidIssuer = issuer });
+                { InvalidIssuer = issuer });
 
             // Throw if all possible places to validate against are null or empty
             if (string.IsNullOrWhiteSpace(validationParameters.ValidIssuer) && (validationParameters.ValidIssuers == null))
                 throw LogHelper.LogExceptionMessage(new SecurityTokenInvalidIssuerException(LogMessages.IDX10204)
-                    { InvalidIssuer = issuer });
+                { InvalidIssuer = issuer });
 
+            return ValidateIssuerPrivate(issuer, validationParameters, null);
+        }
+
+        private static string ValidateIssuerPrivate(string issuer, TokenValidationParameters validationParameters, Configuration config)
+        {
             if (string.Equals(validationParameters.ValidIssuer, issuer, StringComparison.Ordinal))
             {
                 LogHelper.LogInformation(LogMessages.IDX10236, issuer);
@@ -242,7 +305,7 @@ namespace Microsoft.IdentityModel.Tokens
                         LogHelper.LogInformation(LogMessages.IDX10235);
                         continue;
                     }
-                        
+
                     if (string.Equals(str, issuer, StringComparison.Ordinal))
                     {
                         LogHelper.LogInformation(LogMessages.IDX10236, issuer);
@@ -251,10 +314,20 @@ namespace Microsoft.IdentityModel.Tokens
                 }
             }
 
-            throw LogHelper.LogExceptionMessage(
+            if (config != null)
+            {
+                throw LogHelper.LogExceptionMessage(
+                new SecurityTokenInvalidIssuerException(LogHelper.FormatInvariant(LogMessages.IDX10259, issuer, (validationParameters.ValidIssuer ?? "null"), Utility.SerializeAsSingleCommaDelimitedString(validationParameters.ValidIssuers), config.Issuer))
+                { InvalidIssuer = issuer });
+            }
+            else
+            {
+                throw LogHelper.LogExceptionMessage(
                 new SecurityTokenInvalidIssuerException(LogHelper.FormatInvariant(LogMessages.IDX10205, issuer, (validationParameters.ValidIssuer ?? "null"), Utility.SerializeAsSingleCommaDelimitedString(validationParameters.ValidIssuers)))
                 { InvalidIssuer = issuer });
+            }
         }
+
 
         /// <summary>
         /// Validates the <see cref="SecurityKey"/> that signed a <see cref="SecurityToken"/>.

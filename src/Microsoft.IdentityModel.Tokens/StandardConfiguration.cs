@@ -30,21 +30,28 @@ using System.Collections.Generic;
 namespace Microsoft.IdentityModel.Tokens
 {
     /// <summary>
-    ///  TODO
+    ///  Represents a generic metadata configuration.
     /// </summary>
-    public abstract class Configuration
+    public abstract class StandardConfiguration
+
     {
         /// <summary>
-        /// TODO
+        /// Gets the issuer specified via the metadata endpoint.
         /// </summary>
         public virtual string Issuer { get; set; }
 
         /// <summary>
-        ///  TODO
+        /// Gets the <see cref="ICollection{SecurityKey}"/> that the IdentityProvider indicates are to be used in order to sign tokens.
         /// </summary>
         public virtual ICollection<SecurityKey> SigningKeys
         {
             get;
         } = new List<SecurityKey>();
+
+        /// <summary>
+        /// Indicates whether a retrieved configuration is currently being used as an LKG.
+        /// This means that at some point, this configuration was able to successfully validate an incoming token.
+        /// </summary>
+        public bool IsLKG { get; set; }
     }
 }

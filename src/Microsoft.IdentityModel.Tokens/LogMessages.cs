@@ -92,6 +92,7 @@ namespace Microsoft.IdentityModel.Tokens
         public const string IDX10256 = "IDX10256: Unable to validate the token type. TokenValidationParameters.ValidTypes is set, but the 'typ' header claim is null or empty.";
         public const string IDX10257 = "IDX10257: Token type validation failed. Type: '{0}'. Did not match: validationParameters.TokenTypes: '{1}'.";
         public const string IDX10258 = "IDX10258: Token type validated. Type: '{0}'.";
+        public const string IDX10259 = "IDX10259: Issuer validation failed. Issuer: '{0}'. Did not match: validationParameters.ValidIssuer: '{1}' or validationParameters.ValidIssuers: '{2}' or config.Issuer :'{3}'.";
 
         // 10500 - SignatureValidation
         public const string IDX10500 = "IDX10500: Signature validation failed. No security keys were provided to validate the signature.";
@@ -110,6 +111,7 @@ namespace Microsoft.IdentityModel.Tokens
         public const string IDX10514 = "IDX10514: Signature validation failed. Keys tried: '{0}'. \nKeyInfo: '{1}'. \nExceptions caught:\n '{2}'.\ntoken: '{3}'.";
         public const string IDX10515 = "IDX10515: Signature validation failed. Unable to match key: \nKeyInfo: '{0}'.\nExceptions caught:\n '{1}'. \ntoken: '{2}'. Valid Lifetime: '{3}'. Valid Issuer: '{4}'";
         public const string IDX10516 = "IDX10516: Signature validation failed. Unable to match key: \nkid: '{0}'.\nExceptions caught:\n '{1}'. \ntoken: '{2}'. Valid Lifetime: '{3}'. Valid Issuer: '{4}'";
+        public const string IDX10517 = "IDX10517: Reading issuer signing keys from configuratino.";
 
         // encryption / decryption
         // public const string IDX10600 = "IDX10600:";

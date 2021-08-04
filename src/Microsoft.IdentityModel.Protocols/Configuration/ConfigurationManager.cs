@@ -40,7 +40,7 @@ namespace Microsoft.IdentityModel.Protocols
     /// </summary>
     /// <typeparam name="T">The type of <see cref="IDocumentRetriever"/>.</typeparam>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
-    public class ConfigurationManager<T> : ConfigurationManager, IConfigurationManager<T> where T : Configuration
+    public class ConfigurationManager<T> : StandardConfigurationManager, IConfigurationManager<T> where T : StandardConfiguration
     {
         /// <summary>
         /// 12 hours is the default time interval that afterwards, <see cref="GetConfigurationAsync()"/> will obtain new configuration.
@@ -224,14 +224,25 @@ namespace Microsoft.IdentityModel.Protocols
         /// Obtains an updated version of Configuration.
         /// </summary>
         /// <param name="cancel">CancellationToken</param>
-        /// <returns>Configuration of type T.</returns>
+        /// <returns>Configuration of type StandardConfiguration.</returns>
         /// <remarks>If the time since the last call is less than <see cref="AutomaticRefreshInterval"/> then <see cref="IConfigurationRetriever{T}.GetConfigurationAsync"/> is not called and the current Configuration is returned.</remarks>
-        public override async Task<Configuration> GetGenericConfigurationAsync(CancellationToken cancel)
+        public override async Task<StandardConfiguration> GetStandardConfigurationAsync(CancellationToken cancel)
         {
             DateTimeOffset now = DateTimeOffset.UtcNow;
-            if (_currentConfiguration != null && _syncAfter > now)
+
+            // not time yet to refresh the metadata
+            if (_syncAfter > now)
             {
-                return _currentConfiguration;
+                // current config must be non-null and valid
+                if (_useCurrentConfig && _currentConfiguration != null)
+                    return _currentConfiguration;
+                // lkg config must be non-null and valid
+                else if (_useLKG && _lkgConfiguration != null)
+                    return _lkgConfiguration;
+                else
+                {
+                    throw;
+                }
             }
 
             await _refreshLock.WaitAsync(cancel).ConfigureAwait(false);
@@ -247,6 +258,7 @@ namespace Microsoft.IdentityModel.Protocols
                         Contract.Assert(_currentConfiguration != null);
                         _lastRefresh = now;
                         _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval);
+                        _useCurrentConfig = true;
                     }
                     catch (Exception ex)
                     {

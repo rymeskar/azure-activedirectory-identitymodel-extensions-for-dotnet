@@ -32,20 +32,45 @@ using System.Threading.Tasks;
 namespace Microsoft.IdentityModel.Tokens
 {
     /// <summary>
-    /// TODO
+    /// Represents a generic configuration manager.
     /// </summary>
-    public abstract class ConfigurationManager
+    public abstract class StandardConfigurationManager
     {
-
-        private bool _useLKG = true;
-        private Configuration _currentConfiguration;
-        private Configuration _lkgConfiguration;
+        /// <summary>
+        /// Obtains an updated version of the StandardConfiguration if the appropriate refresh interval has passed.
+        /// This method may return a cached version of the configuration.
+        /// </summary>
+        /// <param name="cancel">CancellationToken</param>
+        /// <returns>Configuration of type StandardConfiguration.</returns>
+        public abstract Task<StandardConfiguration> GetStandardConfigurationAsync(CancellationToken cancel);
 
         /// <summary>
-        /// TODO
+        /// The most recently retrieved configuration.
         /// </summary>
-        /// <param name="cancel"></param>
-        /// <returns></returns>
-        public abstract Task<Configuration> GetGenericConfigurationAsync(CancellationToken cancel);
+        public StandardConfiguration CurrentConfiguration { get; set; }
+
+        /// <summary>
+        /// The last known good configuration (a configuration retrieved in the past that we were able to successfully validate a token against).
+        /// </summary>
+        public StandardConfiguration LKGConfiguration { get; set; }
+
+        /// <summary>
+        /// Indicates whether the LKG can be used.
+        /// </summary>
+        public bool UseLKG { get; set; } = false;
+
+        /// <summary>
+        /// Indicates whether the current configuration is valid and safe to use.
+        /// </summary>
+        public bool UseCurrentConfig { get; set; } = false;
+
+        /// <summary>
+        /// Sets the current configuration as the LKG.
+        /// </summary>
+        public void SetLKG()
+        {
+            LKGConfiguration = CurrentConfiguration;
+            LKGConfiguration.IsLKG = true;
+        }
     }
 }
