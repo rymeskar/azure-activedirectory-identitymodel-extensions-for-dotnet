@@ -380,7 +380,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         /// <param name="validationParameters">A <see cref="TokenValidationParameters"/>  required for validation.</param>
         /// <returns>Returns a <see cref="SecurityKey"/> to use for signature validation.</returns>
         /// <remarks>If key fails to resolve, then null is returned</remarks>
-        internal static SecurityKey ResolveTokenSigningKey(string kid, string x5t, TokenValidationParameters validationParameters, StandardConfiguration configuration)
+        internal static SecurityKey ResolveTokenSigningKey(string kid, string x5t, TokenValidationParameters validationParameters)
         {
 
             if (!string.IsNullOrEmpty(kid))
@@ -427,49 +427,6 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Returns a <see cref="SecurityKey"/> to use when validating the signature of a token.
-        /// </summary>
-        /// <param name="kid">The <see cref="string"/> kid field of the token being validated</param>
-        /// <param name="x5t">The <see cref="string"/> x5t field of the token being validated</param>
-        /// <param name="configuration">TODO</param>
-        /// <returns>Returns a <see cref="SecurityKey"/> to use for signature validation.</returns>
-        /// <remarks>If key fails to resolve, then null is returned</remarks>
-        internal static SecurityKey ResolveTokenSigningKey(string kid, string x5t, StandardConfiguration configuration)
-        {
-            if (!string.IsNullOrEmpty(kid))
-            {
-                if (configuration.SigningKeys != null)
-                {
-                    foreach (SecurityKey signingKey in configuration.SigningKeys)
-                    {
-                        if (signingKey != null && string.Equals(signingKey.KeyId, kid, signingKey is X509SecurityKey ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
-                        {
-                            return signingKey;
-                        }
-                    }
-                }
-            }
-
-
-            if (!string.IsNullOrEmpty(x5t))
-            {
-                if (configuration.SigningKeys != null)
-                {
-                    foreach (SecurityKey signingKey in configuration.SigningKeys)
-                    {
-                        if (signingKey != null && string.Equals(signingKey.KeyId, x5t, StringComparison.Ordinal))
-                        {
-                            return signingKey;
-                        }
-                    }
-                }
-            }
-
-            return null;
-
         }
     }
 }

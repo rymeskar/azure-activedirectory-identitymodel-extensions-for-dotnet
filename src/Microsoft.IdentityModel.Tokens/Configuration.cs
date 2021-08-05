@@ -25,52 +25,26 @@
 //
 //------------------------------------------------------------------------------
 
-
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Microsoft.IdentityModel.Tokens
 {
     /// <summary>
-    /// Represents a generic configuration manager.
+    ///  Represents a generic metadata configuration which is applicable for both XML and JSON based configurations.
     /// </summary>
-    public abstract class StandardConfigurationManager
+    public abstract class Configuration
     {
         /// <summary>
-        /// Obtains an updated version of the StandardConfiguration if the appropriate refresh interval has passed.
-        /// This method may return a cached version of the configuration.
+        /// Gets the issuer specified via the metadata endpoint.
         /// </summary>
-        /// <param name="cancel">CancellationToken</param>
-        /// <returns>Configuration of type StandardConfiguration.</returns>
-        public abstract Task<StandardConfiguration> GetStandardConfigurationAsync(CancellationToken cancel);
+        public virtual string Issuer { get; set; }
 
         /// <summary>
-        /// The most recently retrieved configuration.
+        /// Gets the <see cref="ICollection{SecurityKey}"/> that the IdentityProvider indicates are to be used in order to sign tokens.
         /// </summary>
-        public StandardConfiguration CurrentConfiguration { get; set; }
-
-        /// <summary>
-        /// The last known good configuration (a configuration retrieved in the past that we were able to successfully validate a token against).
-        /// </summary>
-        public StandardConfiguration LKGConfiguration { get; set; }
-
-        /// <summary>
-        /// Indicates whether the LKG can be used.
-        /// </summary>
-        public bool UseLKG { get; set; } = false;
-
-        /// <summary>
-        /// Indicates whether the current configuration is valid and safe to use.
-        /// </summary>
-        public bool UseCurrentConfig { get; set; } = false;
-
-        /// <summary>
-        /// Sets the current configuration as the LKG.
-        /// </summary>
-        public void SetLKG()
+        public virtual ICollection<SecurityKey> SigningKeys
         {
-            LKGConfiguration = CurrentConfiguration;
-            LKGConfiguration.IsLKG = true;
-        }
+            get;
+        } = new List<SecurityKey>();
     }
 }

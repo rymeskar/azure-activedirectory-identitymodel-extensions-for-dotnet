@@ -39,7 +39,7 @@ namespace Microsoft.IdentityModel.Protocols.OpenIdConnect
     /// Contains OpenIdConnect configuration that can be populated from a json string.
     /// </summary>
     [JsonObject]
-    public class OpenIdConnectConfiguration : StandardConfiguration
+    public class OpenIdConnectConfiguration : Configuration
     {
         /// <summary>
         /// Deserializes the json string into an <see cref="OpenIdConnectConfiguration"/> object.

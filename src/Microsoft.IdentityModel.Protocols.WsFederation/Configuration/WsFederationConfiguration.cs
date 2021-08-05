@@ -34,7 +34,7 @@ namespace Microsoft.IdentityModel.Protocols.WsFederation
     /// <summary>
     /// Contains WsFederation metadata that can be populated from a XML string.
     /// </summary>
-    public class WsFederationConfiguration : StandardConfiguration
+    public class WsFederationConfiguration : Configuration
     {
         /// <summary>
         /// Initializes an new instance of <see cref="WsFederationConfiguration"/>.
