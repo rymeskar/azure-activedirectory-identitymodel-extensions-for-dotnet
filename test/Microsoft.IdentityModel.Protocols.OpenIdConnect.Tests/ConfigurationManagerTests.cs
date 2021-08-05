@@ -115,8 +115,8 @@ namespace Microsoft.IdentityModel.Protocols.OpenIdConnect.Tests
             var configManager = new ConfigurationManager<OpenIdConnectConfiguration>("OpenIdConnectMetadata.json", new OpenIdConnectConfigurationRetriever(), new FileDocumentRetriever());
             Type type = typeof(ConfigurationManager<OpenIdConnectConfiguration>);
             PropertyInfo[] properties = type.GetProperties();
-            if (properties.Length != 2)
-                Assert.True(false, "Number of properties has changed from 2 to: " + properties.Length + ", adjust tests");
+            if (properties.Length != 6)
+                Assert.True(false, "Number of properties has changed from 6 to: " + properties.Length + ", adjust tests");
 
             var defaultAutomaticRefreshInterval = ConfigurationManager<OpenIdConnectConfiguration>.DefaultAutomaticRefreshInterval;
             var defaultRefreshInterval = ConfigurationManager<OpenIdConnectConfiguration>.DefaultRefreshInterval;
@@ -130,9 +130,13 @@ namespace Microsoft.IdentityModel.Protocols.OpenIdConnect.Tests
             };
 
             TestUtilities.GetSet(context);
-            TestUtilities.SetGet(configManager, "AutomaticRefreshInterval", TimeSpan.FromMilliseconds(1), ExpectedException.ArgumentOutOfRangeException(substringExpected: "IDX20107:"), context);
-            TestUtilities.SetGet(configManager, "RefreshInterval", TimeSpan.FromMilliseconds(1), ExpectedException.ArgumentOutOfRangeException(substringExpected: "IDX20106:"), context);
-            TestUtilities.SetGet(configManager, "RefreshInterval", Timeout.InfiniteTimeSpan, ExpectedException.ArgumentOutOfRangeException(substringExpected: "IDX20106:"), context);
+            TestUtilities.SetGet(configManager, "AutomaticRefreshInterval", TimeSpan.FromMilliseconds(1), ExpectedException.ArgumentOutOfRangeException(substringExpected: "IDX10107:"), context);
+            TestUtilities.SetGet(configManager, "RefreshInterval", TimeSpan.FromMilliseconds(1), ExpectedException.ArgumentOutOfRangeException(substringExpected: "IDX10106:"), context);
+            TestUtilities.SetGet(configManager, "RefreshInterval", Timeout.InfiniteTimeSpan, ExpectedException.ArgumentOutOfRangeException(substringExpected: "IDX10106:"), context);
+            TestUtilities.SetGet(configManager, "CurrentConfiguration", new OpenIdConnectConfiguration(), ExpectedException.NoExceptionExpected, context);
+            TestUtilities.SetGet(configManager, "LKGConfiguration", new OpenIdConnectConfiguration(), ExpectedException.NoExceptionExpected, context);
+            TestUtilities.SetGet(configManager, "UseLKG", true, ExpectedException.NoExceptionExpected, context);
+            TestUtilities.SetGet(configManager, "UseCurrentConfiguration", true, ExpectedException.NoExceptionExpected, context);
             TestUtilities.AssertFailIfErrors("ConfigurationManager_GetSets", context.Errors);
         }
 

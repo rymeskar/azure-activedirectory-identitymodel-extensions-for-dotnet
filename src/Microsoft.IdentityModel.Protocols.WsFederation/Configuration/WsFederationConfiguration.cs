@@ -34,7 +34,7 @@ namespace Microsoft.IdentityModel.Protocols.WsFederation
     /// <summary>
     /// Contains WsFederation metadata that can be populated from a XML string.
     /// </summary>
-    public class WsFederationConfiguration
+    public class WsFederationConfiguration : StandardConfiguration
     {
         /// <summary>
         /// Initializes an new instance of <see cref="WsFederationConfiguration"/>.
@@ -46,7 +46,7 @@ namespace Microsoft.IdentityModel.Protocols.WsFederation
         /// <summary>
         /// Gets or sets the token issuer.
         /// </summary>
-        public string Issuer
+        public override string Issuer
         {
             get;
             set;
@@ -55,7 +55,7 @@ namespace Microsoft.IdentityModel.Protocols.WsFederation
         /// <summary>
         /// Gets the <see cref="IList{SecurityKey}"/> that the IdentityProvider indicates are to be used signing keys.
         /// </summary>
-        public ICollection<SecurityKey> SigningKeys
+        public override ICollection<SecurityKey> SigningKeys
         {
             get;
         } = new List<SecurityKey>();
