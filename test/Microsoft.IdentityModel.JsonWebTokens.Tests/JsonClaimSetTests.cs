@@ -46,9 +46,10 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
 {
     public class JsonClaimSetTests
     {
-        private static DateTime dateTime = new DateTime(2000, 01, 01, 0, 0, 0);
-        private string jsonString = $@"{{""intarray"":[1,2,3], ""array"":[1,""2"",3], ""jobject"": {{""string1"":""string1value"",""string2"":""string2value""}},""string"":""bob"", ""float"":42.0, ""integer"":42, ""nill"": null, ""bool"" : true, ""dateTime"": ""{dateTime}"", ""dateTimeIso8061"": ""{dateTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}"" }}";
-        private List<Claim> payloadClaims = new List<Claim>()
+        private static DateTime _dateTime = new DateTime(2000, 01, 01, 0, 0, 0);
+        private static string _dateTimePropertyName = "dateTime";
+        private static string _jsonPayload = $@"{{""intarray"":[1,2,3], ""array"":[1,""2"",3], ""jobject"": {{""string1"":""string1value"",""string2"":""string2value""}},""string"":""bob"", ""float"":42.0, ""integer"":42, ""nill"": null, ""bool"" : true, ""{_dateTimePropertyName}"": ""{_dateTime}"", ""dateTimeIso8061"": ""{_dateTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}"" }}";
+        private List<Claim> _payloadClaims = new List<Claim>()
         {
             new Claim("intarray", @"[1,2,3]", JsonClaimValueTypes.JsonArray, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
             new Claim("array", @"[1,""2"",3]", JsonClaimValueTypes.JsonArray, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
@@ -58,8 +59,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             new Claim("integer", "42", ClaimValueTypes.Integer, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
             new Claim("nill", "", JsonClaimValueTypes.JsonNull, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
             new Claim("bool", "true", ClaimValueTypes.Boolean, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
-            new Claim("dateTime", dateTime.ToString(), ClaimValueTypes.String, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
-            new Claim("dateTimeIso8061", dateTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture), ClaimValueTypes.DateTime, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
+            new Claim("dateTime", _dateTime.ToString(), ClaimValueTypes.String, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
+            new Claim("dateTimeIso8061", _dateTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture), ClaimValueTypes.DateTime, "LOCAL AUTHORITY", "LOCAL AUTHORITY"),
         };
 
         [Theory, MemberData(nameof(ClaimSetTestCases))]
@@ -157,31 +158,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                 ShouldFind = true
             });
 
-            theoryData.Add(new JsonClaimSetTheoryData("IntegerAsObjArray")
-            {
-                ExpectedException = new ExpectedException( typeof(TargetInvocationException), null , typeof(ArgumentException)){ InnerSubstringExpected = "IDX14305:"},
-                Json = $@"{{""IntegerAsObjArray"":1}}",
-                PropertyName = "IntegerAsObjArray",
-                PropertyType = typeof(object[]),
-                PropertyValue = (int)1,
-                ShouldFind = true
-            });
-
             theoryData.Add(new JsonClaimSetTheoryData("IntegersAsIntArray")
             {
                 Json = $@"{{""IntegersAsIntArray"":[1,2,3]}}",
                 PropertyName = "IntegersAsIntArray",
                 PropertyType = typeof(int[]),
                 PropertyValue = new int[] {1,2,3},
-                ShouldFind = true
-            });
-
-            theoryData.Add(new JsonClaimSetTheoryData("IntegersAsObj")
-            {
-                Json = $@"{{""IntegersAsObj"":[1,2,3]}}",
-                PropertyName = "IntegersAsObj",
-                PropertyType = typeof(object),
-                PropertyValue = new object[]{1, 2, 3},
                 ShouldFind = true
             });
 
@@ -193,6 +175,16 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                 PropertyValue = new object[] { (long)1, (long)2, (long)3 },
                 ShouldFind = true
             });
+
+            theoryData.Add(new JsonClaimSetTheoryData("IntegersAsObj")
+            {
+                Json = $@"{{""IntegersAsObj"":[1,2,3]}}",
+                PropertyName = "IntegersAsObj",
+                PropertyType = typeof(object[]),
+                PropertyValue = new object[] { (long)1, (long)2, (long)3 },
+                ShouldFind = true
+            });
+
             #endregion
 
             #region mixed arrays
@@ -201,10 +193,10 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                 Json = $@"{{""MixedArrayAsObjArray"":[1,""2"",3]}}",
                 PropertyName = "MixedArrayAsObjArray",
                 PropertyType = typeof(object[]),
-                PropertyValue = new object[] { 1L, "2", 3L},
+                PropertyValue = new object[] { (long)1, "2", (long)3},
                 ShouldFind = true
             });
-            #endregion
+#endregion
 
             #region strings
             theoryData.Add(new JsonClaimSetTheoryData("string")
@@ -252,109 +244,13 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                 Json = $@"{{""double"":42.0}}",
                 PropertyName = "double",
                 PropertyType = typeof(double),
-                PropertyValue = 42.0,
+                PropertyValue = (double)42.0,
                 ShouldFind = true
             });
+
             #endregion
 
             return theoryData;
-        }
-
-        // Test checks to make sure that claim values of various types can be successfully retrieved from the header.
-        [Fact]
-        public void GetValues()
-        {
-            var context = new CompareContext();
-            IdentityModelEventSource.ShowPII = true;
-            TestUtilities.WriteHeader($"{this}.GetHeaderValues");
-
-            var token = new JsonWebToken(jsonString, "{}");
-
-            object dateTimeString = token.GetHeaderValue<object>("dateTime");
-            try
-            {
-                DateTime dateTime = token.GetHeaderValue<DateTime>("dateTime");
-            }
-            catch
-            {
-
-            }
-
-
-            //$@"{{""intarray"":[1,2,3], ""array"":[1,""2"",3], ""jobject"": {{""string1"":""string1value"",""string2"":""string2value""}},""string"":""bob"", ""float"":42.0, ""integer"":42,  ""bool"" : true, ""dateTime"": ""{dateTime}"", ""dateTimeIso8061"": ""{dateTime.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)}"" }}";
-            // ""intarray"":[1,2,3]
-            var intarray = token.GetHeaderValue<int[]>("intarray");
-            //IdentityComparer.AreEqual(new int[] { 1, 2, 3 }, intarray, context);
-
-            var intarrayObj = token.GetHeaderValue<object>("intarray");
-            //IdentityComparer.AreEqual(new int[] { 1, 2, 3 }, intarrayObj, context);
-
-            var intarrayObjArray = token.GetHeaderValue<object[]>("intarray");
-            //IdentityComparer.AreEqual(new int[] { 1, 2, 3 }, intarrayObj, context);
-
-            // ""array"":[1,""2"",3]
-            try
-            {
-                var arrayInt = token.GetHeaderValue<int[]>("array");
-                IdentityComparer.AreEqual(new object[] { 1L, "2", 3L }, arrayInt, context);
-            }
-            catch
-            {
-
-            }
-
-            // ""array"":[1,""2"",3]
-            var arrayObj = token.GetHeaderValue<object[]>("array");
-            //IdentityComparer.AreEqual(new object[] { 1L, "2", 3L }, arrayObj, context);
-
-            //""nill"": null,
-            var dateTimeNill = token.GetHeaderValue<DateTime>("nill");
-            //IdentityComparer.AreEqual(dateTimeNill, default(DateTime), context);
-
-            var dateTimeNillArray = token.GetHeaderValue<DateTime[]>("nill");
-            //IdentityComparer.AreEqual(dateTimeNillArray, default(DateTime[]), context);
-
-            var nillNullObject = token.GetHeaderValue<object>("nill");
-            //IdentityComparer.AreEqual(nillNullObject, null, context);
-
-            var nillNullObjectArray = token.GetHeaderValue<object[]>("nill");
-            //IdentityComparer.AreEqual(nillNullObjectArray, null, context);
-
-            // only possible internally within the library since we're using Microsoft.IdentityModel.Json.Linq.JObject
-            var jobject = token.GetHeaderValue<JObject>("jobject");
-            IdentityComparer.AreEqual(JObject.Parse(@"{ ""string1"":""string1value"", ""string2"":""string2value"" }"), jobject, context);
-
-            var name = token.GetHeaderValue<string>("string");
-            IdentityComparer.AreEqual("bob", name, context);
-
-            var floatingPoint = token.GetHeaderValue<float>("float");
-            IdentityComparer.AreEqual(42.0, floatingPoint, context);
-
-            var integer = token.GetHeaderValue<int>("integer");
-            IdentityComparer.AreEqual(42, integer, context);
-
-            var boolean = token.GetHeaderValue<bool>("bool");
-            IdentityComparer.AreEqual(boolean, true, context);
-
-            try // Try to retrieve a value that doesn't exist in the header.
-            {
-                token.GetHeaderValue<int>("doesnotexist");
-            }
-            catch (Exception ex)
-            {
-                ExpectedException.ArgumentException("IDX14304:").ProcessException(ex, context);
-            }
-
-            try // Try to retrieve an integer when the value is actually a string.
-            {
-                token.GetHeaderValue<int>("string");
-            }
-            catch (Exception ex)
-            {
-                ExpectedException.ArgumentException("IDX14305:", typeof(System.FormatException)).ProcessException(ex, context);
-            }
-
-            TestUtilities.AssertFailIfErrors(context);
         }
 
         // Test checks to make sure that claim values of various types can be successfully retrieved from the payload.
@@ -364,7 +260,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             var context = new CompareContext();
             TestUtilities.WriteHeader($"{this}.TryGetPayloadValues");
 
-            var token = new JsonWebToken("{}", jsonString);
+            var token = new JsonWebToken("{}", _jsonPayload);
 
             var success = token.TryGetPayloadValue("intarray", out int[] intarray);
             IdentityComparer.AreEqual(new int[] { 1, 2, 3 }, intarray, context);
@@ -374,11 +270,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             IdentityComparer.AreEqual(new object[] { 1L, "2", 3L }, array, context);
             IdentityComparer.AreEqual(true, success, context);
 
+#if NET452
             // only possible internally within the library since we're using Microsoft.IdentityModel.Json.Linq.JObject
             success = token.TryGetPayloadValue("jobject", out JObject jobject);
             IdentityComparer.AreEqual(JObject.Parse(@"{ ""string1"":""string1value"", ""string2"":""string2value"" }"), jobject, context);
             IdentityComparer.AreEqual(true, success, context);
-
+#endif
             success = token.TryGetPayloadValue("string", out string name);
             IdentityComparer.AreEqual("bob", name, context);
             IdentityComparer.AreEqual(true, success, context);
@@ -400,11 +297,11 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             IdentityComparer.AreEqual(true, success, context);
 
             var dateTimeValue = token.GetPayloadValue<string>("dateTime");
-            IdentityComparer.AreEqual(dateTimeValue, dateTime.ToString(), context);
+            IdentityComparer.AreEqual(dateTimeValue, _dateTime.ToString(), context);
             IdentityComparer.AreEqual(true, success, context);
 
             var dateTimeIso8061Value = token.GetPayloadValue<DateTime>("dateTimeIso8061");
-            IdentityComparer.AreEqual(dateTimeIso8061Value, dateTime, context);
+            IdentityComparer.AreEqual(dateTimeIso8061Value, _dateTime.ToUniversalTime(), context);
             IdentityComparer.AreEqual(true, success, context);
 
             success = token.TryGetPayloadValue("doesnotexist", out int doesNotExist);
@@ -423,6 +320,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             public JsonClaimSetTheoryData(string id) : base(id) { }
 
             public string Json { get; set; }
+
+            public JsonWebToken JsonWebToken { get; set; }
 
             public string PropertyName { get; set; }
 

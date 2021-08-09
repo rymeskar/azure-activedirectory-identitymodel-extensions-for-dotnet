@@ -943,7 +943,7 @@ namespace Microsoft.IdentityModel.TestUtils
         public static bool AreX509Certificate2Equal(object object1, object object2, CompareContext context)
         {
             var localContext = new CompareContext(context);
-            if (ContinueCheckingEquality(object1, object2, localContext))
+            if (!ContinueCheckingEquality(object1, object2, localContext))
                 return context.Merge(localContext);
 
             var certificate1 = (X509Certificate2)object1;

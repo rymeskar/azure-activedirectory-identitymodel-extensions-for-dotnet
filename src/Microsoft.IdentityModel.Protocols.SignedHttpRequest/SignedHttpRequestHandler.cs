@@ -630,7 +630,7 @@ namespace Microsoft.IdentityModel.Protocols.SignedHttpRequest
                         if (signatureProvider == null)
                             throw LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(Tokens.LogMessages.IDX10636, popKey.ToString(), signedHttpRequest.Alg ?? "Null")));
 
-                        if (signatureProvider.Verify(Encoding.UTF8.GetBytes(signedHttpRequest.EncodedHeader + "." + signedHttpRequest.EncodedPayload), Base64UrlEncoder.DecodeBytes(signedHttpRequest.EncodedSignature)))
+                        if (signatureProvider.Verify(signedHttpRequest._hpUtf8Bytes, signedHttpRequest._sBytes))
                             return popKey;
                     }
                     finally

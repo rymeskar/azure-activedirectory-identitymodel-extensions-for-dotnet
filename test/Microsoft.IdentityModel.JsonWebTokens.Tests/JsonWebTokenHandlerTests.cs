@@ -2168,6 +2168,42 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                 {
                     new JwtTheoryData
                     {
+                        TestId = "JWE_AcceptedAlgorithmsValidator_DoesNotValidate",
+                        Token = new JsonWebTokenHandler().CreateToken(
+                            Default.PayloadString,
+                            KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2,
+                            new EncryptingCredentials(KeyingMaterial.DefaultX509Key_2048, SecurityAlgorithms.RsaPKCS1, SecurityAlgorithms.Aes128CbcHmacSha256)),
+                        ValidationParameters = new TokenValidationParameters
+                        {
+                            ValidAudience = Default.Audience,
+                            ValidIssuer = Default.Issuer,
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2.Key,
+                            TokenDecryptionKey = KeyingMaterial.DefaultX509Key_2048,
+                            AlgorithmValidator = ValidationDelegates.AlgorithmValidatorBuilder(false)
+                        },
+                        ExpectedException = new ExpectedException(typeof(SecurityTokenDecryptionFailedException), "IDX10697"),
+                    },
+                    new JwtTheoryData
+                    {
+                        TestId = "JWE_AcceptedAlgorithms_AlgorithmsNotInList",
+                        Token = new JsonWebTokenHandler().CreateToken(
+                            Default.PayloadString,
+                            KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2,
+                            new EncryptingCredentials(KeyingMaterial.DefaultX509Key_2048, SecurityAlgorithms.RsaPKCS1, SecurityAlgorithms.Aes128CbcHmacSha256)),
+                        ValidationParameters = new TokenValidationParameters
+                        {
+                            ValidAudience = Default.Audience,
+                            ValidIssuer = Default.Issuer,
+                            ValidateIssuerSigningKey = true,
+                            IssuerSigningKey = KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2.Key,
+                            TokenDecryptionKey = KeyingMaterial.DefaultX509Key_2048,
+                            ValidAlgorithms = new List<string> { SecurityAlgorithms.RsaPKCS1, SecurityAlgorithms.Aes128CbcHmacSha256 }
+                        },
+                        ExpectedException = ExpectedException.SecurityTokenInvalidSignatureException("IDX10696:")
+                    },
+                    new JwtTheoryData
+                    {
                         TestId = "JWE_NoGivenAcceptedAlgorithms",
                         Token = new JsonWebTokenHandler().CreateToken(
                             Default.PayloadString,
@@ -2201,24 +2237,6 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                     },
                     new JwtTheoryData
                     {
-                        TestId = "JWE_AcceptedAlgorithms_AlgorithmsNotInList",
-                        Token = new JsonWebTokenHandler().CreateToken(
-                            Default.PayloadString,
-                            KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2,
-                            new EncryptingCredentials(KeyingMaterial.DefaultX509Key_2048, SecurityAlgorithms.RsaPKCS1, SecurityAlgorithms.Aes128CbcHmacSha256)),
-                        ValidationParameters = new TokenValidationParameters
-                        {
-                            ValidAudience = Default.Audience,
-                            ValidIssuer = Default.Issuer,
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2.Key,
-                            TokenDecryptionKey = KeyingMaterial.DefaultX509Key_2048,
-                            ValidAlgorithms = new List<string> { SecurityAlgorithms.RsaPKCS1, SecurityAlgorithms.Aes128CbcHmacSha256 }
-                        },
-                        ExpectedException = ExpectedException.SecurityTokenInvalidSignatureException("IDX10511"),
-                    },
-                    new JwtTheoryData
-                    {
                         TestId = "JWE_AcceptedAlgorithmsValidator_Validates",
                         Token = new JsonWebTokenHandler().CreateToken(
                             Default.PayloadString,
@@ -2233,24 +2251,6 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             TokenDecryptionKey = KeyingMaterial.DefaultX509Key_2048,
                             AlgorithmValidator = ValidationDelegates.AlgorithmValidatorBuilder(true)
                         },
-                    },
-                    new JwtTheoryData
-                    {
-                        TestId = "JWE_AcceptedAlgorithmsValidator_DoesNotValidate",
-                        Token = new JsonWebTokenHandler().CreateToken(
-                            Default.PayloadString,
-                            KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2,
-                            new EncryptingCredentials(KeyingMaterial.DefaultX509Key_2048, SecurityAlgorithms.RsaPKCS1, SecurityAlgorithms.Aes128CbcHmacSha256)),
-                        ValidationParameters = new TokenValidationParameters
-                        {
-                            ValidAudience = Default.Audience,
-                            ValidIssuer = Default.Issuer,
-                            ValidateIssuerSigningKey = true,
-                            IssuerSigningKey = KeyingMaterial.DefaultSymmetricSigningCreds_256_Sha2.Key,
-                            TokenDecryptionKey = KeyingMaterial.DefaultX509Key_2048,
-                            AlgorithmValidator = ValidationDelegates.AlgorithmValidatorBuilder(false)
-                        },
-                        ExpectedException = ExpectedException.SecurityTokenDecryptionFailedException("IDX10697"),
                     },
                 };
             }
@@ -2289,9 +2289,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
             {
                 return new TheoryData<JwtTheoryData>
                 {
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJwsWithNoKid_RequireSignedTokens_NoKid_WrongSigningKey")
                     {
-                        TestId = nameof(Default.SymmetricJwsWithNoKid) + "_" + "RequireSignedTokens_NoKid_WrongSigningKey",
                         Token = Default.SymmetricJwsWithNoKid,
                         ExpectedException = ExpectedException.SecurityTokenSignatureKeyNotFoundException("IDX10503"),
                         ValidationParameters = new TokenValidationParameters
@@ -2303,9 +2302,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidateLifetime = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("AsymmetricJws_RequireSignedTokens")
                     {
-                        TestId = nameof(Default.AsymmetricJws) + "_" + "RequireSignedTokens",
                         Token = Default.AsymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2316,9 +2314,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidateLifetime = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_RequireSignedTokens_KeyNotFound")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "RequireSignedTokens_KeyNotFound",
                         Token = Default.SymmetricJws,
                         ExpectedException = ExpectedException.SecurityTokenSignatureKeyNotFoundException("IDX10501"),
                         ValidationParameters = new TokenValidationParameters
@@ -2331,9 +2328,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             TryAllIssuerSigningKeys = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_RequireSignedTokens")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "RequireSignedTokens",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2344,10 +2340,9 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidateLifetime = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_RequireSignedTokensNullSigningKey")
                     {
                         ExpectedException = ExpectedException.SecurityTokenSignatureKeyNotFoundException("IDX10501:"),
-                        TestId = nameof(Default.SymmetricJws) + "_" + "RequireSignedTokensNullSigningKey",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2358,9 +2353,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidateLifetime = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_DontRequireSignedTokens")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "DontRequireSignedTokens",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2372,9 +2366,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidateLifetime = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("UnsignedJwt_DontRequireSignedTokensNullSigningKey")
                     {
-                        TestId = nameof(Default.UnsignedJwt) + "_" + "DontRequireSignedTokensNullSigningKey",
                         Token = Default.UnsignedJwt,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2386,9 +2379,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidateLifetime = false,
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_SpecifyAcceptedAlgorithms_AlgorithmInList")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "SpecifyAcceptedAlgorithms_AlgorithmInList",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2401,9 +2393,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidAlgorithms = new List<string> { SecurityAlgorithms.HmacSha256 }
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_SpecifyAcceptedAlgorithms_EmptyList")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "SpecifyAcceptedAlgorithms_EmptyList",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2416,9 +2407,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             ValidAlgorithms = new List<string>()
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_SpecifyAcceptedAlgorithms_AlgorithmNotInList")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "SpecifyAcceptedAlgorithms_AlgorithmNotInList",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2432,9 +2422,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                         },
                         ExpectedException = ExpectedException.SecurityTokenInvalidSignatureException("IDX10511")
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_SpecifyAcceptedAlgorithmValidator_Validates")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "SpecifyAcceptedAlgorithmValidator_Validates",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2447,9 +2436,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                             AlgorithmValidator = ValidationDelegates.AlgorithmValidatorBuilder(true)
                         }
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_SpecifyAcceptedAlgorithmValidator_DoesNotValidate")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "SpecifyAcceptedAlgorithmValidator_DoesNotValidate",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2463,9 +2451,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                         },
                         ExpectedException = ExpectedException.SecurityTokenInvalidSignatureException("IDX10511")
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("SymmetricJws_SpecifyAcceptedAlgorithmValidator_Throws")
                     {
-                        TestId = nameof(Default.SymmetricJws) + "_" + "SpecifyAcceptedAlgorithmValidator_Throws",
                         Token = Default.SymmetricJws,
                         ValidationParameters = new TokenValidationParameters
                         {
@@ -2479,9 +2466,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens.Tests
                         },
                         ExpectedException = ExpectedException.SecurityTokenInvalidSignatureException("IDX10511")
                     },
-                    new JwtTheoryData
+                    new JwtTheoryData("JWS_NoExp")
                     {
-                        TestId = "JWS_NoExp",
                         Token = (new JsonWebTokenHandler(){SetDefaultTimesOnTokenCreation = false }).CreateToken(new SecurityTokenDescriptor
                         {
                             SigningCredentials = KeyingMaterial.JsonWebKeyRsa256SigningCredentials,

@@ -66,9 +66,9 @@ namespace Microsoft.IdentityModel.JsonWebTokens
 
         internal bool HasSignature { get; set; }
 
-        internal byte[] _hBytes;
+        internal char[] _hChars;
         internal byte[] _hpUtf8Bytes;
-        internal char[] _pBytes;
+        internal char[] _pChars;
         internal byte[] _sBytes;
 
         private Lazy<string> _act;
@@ -76,7 +76,9 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         private Lazy<IEnumerable<string>> _audiences;
         private Lazy<string> _cty;
         private Lazy<string> _enc;
+        private Lazy<string> _encodedHeader;
         private Lazy<string> _encodedPayload;
+        private Lazy<string> _encodedSignature;
         private Lazy<DateTime> _iat;
         private Lazy<string> _id;
         private Lazy<string> _iss;
@@ -154,7 +156,9 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             _audiences = new Lazy<IEnumerable<string>>(AudiencesFactory);
             _cty = new Lazy<string>(CtyFactory);
             _enc = new Lazy<string>(EncFactory);
+            _encodedHeader = new Lazy<string>(EncodedHeaderFactory);
             _encodedPayload = new Lazy<string>(EncodedPayloadFactory);
+            _encodedSignature = new Lazy<string>(EncodedSignatureFactory);
             _iat = new Lazy<DateTime>(IatFactory);
             _id = new Lazy<string>(IdFactory);
             _iss = new Lazy<string>(IssuerFactory);
@@ -265,6 +269,17 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         public string EncryptedKey { get; internal set; }
 
         /// <summary>
+        /// Gets the EncodedHeader from the original raw data of this instance when it was created.
+        /// </summary>
+        /// <remarks>The original JSON Compact serialized format passed into the constructor. <see cref="JsonWebToken(string)"/></remarks>
+        public string EncodedHeader => _encodedHeader.Value;
+
+        private string EncodedHeaderFactory()
+        {
+            return new string(_hChars);
+        }
+
+        /// <summary>
         /// Gets the EncodedPayload from the original raw data of this instance when it was created.
         /// </summary>
         /// <remarks>The original JSON Compact serialized format passed into the constructor. <see cref="JsonWebToken(string)"/></remarks>
@@ -272,7 +287,18 @@ namespace Microsoft.IdentityModel.JsonWebTokens
 
         private string EncodedPayloadFactory()
         {
-            return new string(_pBytes);
+            return new string(_pChars);
+        }
+
+        /// <summary>
+        /// Gets the EncodedPayload from the original raw data of this instance when it was created.
+        /// </summary>
+        /// <remarks>The original JSON Compact serialized format passed into the constructor. <see cref="JsonWebToken(string)"/></remarks>
+        public string EncodedSignature => _encodedSignature.Value;
+
+        private string EncodedSignatureFactory()
+        {
+            return string.Empty;
         }
 
         internal bool HasPayloadClaim(string claimName)
@@ -334,18 +360,6 @@ namespace Microsoft.IdentityModel.JsonWebTokens
         {
             return HeaderClaimSet.GetStringValue(JwtHeaderParameterNames.Kid);
         }
-
-        /// <summary>
-        /// Gets the EncodedHeader from the original raw data of this instance when it was created.
-        /// </summary>
-        /// <remarks>The original JSON Compact serialized format passed into the constructor. <see cref="JsonWebToken(string)"/></remarks>
-        public string EncodedHeader { get; internal set; }
-
-        /// <summary>
-        /// Gets the EncodedSignature from the original raw data of this instance when it was created.
-        /// </summary>
-        /// <remarks>The original JSON Compact serialized format passed into the constructor. <see cref="JsonWebToken(string)"/></remarks>
-        public string EncodedSignature { get; internal set; }
 
         /// <summary>
         /// Gets the original raw data of this instance when it was created.
@@ -481,11 +495,12 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                     _sBytes = Base64UrlEncoder.UnsafeDecode(encodedJson.ToCharArray(dots[1] + 1, encodedJson.Length - dots[1] - 1));
                 }
 
-                _pBytes = encodedJson.ToCharArray(dots[0] + 1, dots[1] - dots[0] - 1);
+                _hChars = encodedJson.ToCharArray(0, dots[0]);
+                _pChars = encodedJson.ToCharArray(dots[0] + 1, dots[1] - dots[0] - 1);
                 _hpUtf8Bytes = Encoding.UTF8.GetBytes(encodedJson.ToCharArray(0, dots[1]));
                 try
                 {
-                    HeaderClaimSet = new JsonClaimSet(Base64UrlEncoder.UnsafeDecode(encodedJson.ToCharArray(0, dots[0])));
+                    HeaderClaimSet = new JsonClaimSet(Base64UrlEncoder.UnsafeDecode(_hChars));
                 }
                 catch(Exception ex)
                 {
@@ -494,7 +509,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
 
                 try
                 {
-                    PayloadClaimSet = new JsonClaimSet(Base64UrlEncoder.UnsafeDecode(_pBytes));
+                    PayloadClaimSet = new JsonClaimSet(Base64UrlEncoder.UnsafeDecode(_pChars));
                 }
                 catch(Exception ex)
                 {
@@ -526,7 +541,7 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 throw LogHelper.LogExceptionMessage(new ArgumentException(LogHelper.FormatInvariant(LogMessages.IDX14100, encodedJson)));
             }
 
-            NumberOfSegments = dots.Count;
+            NumberOfSegments = dots.Count + 1;
         }
 
         /// <summary>

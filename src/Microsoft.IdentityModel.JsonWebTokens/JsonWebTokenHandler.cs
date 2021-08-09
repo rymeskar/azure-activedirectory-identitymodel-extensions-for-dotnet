@@ -1066,13 +1066,13 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                 var key = JwtTokenUtilities.ResolveTokenSigningKey(jwtToken.Kid, jwtToken.X5t, validationParameters);
                 if (key != null)
                 {
-                    if (ValidateSignature(jwtToken._hpUtf8Bytes, jwtToken._sBytes, key, jwtToken.Alg, jwtToken, validationParameters))
-                    {
-                        LogHelper.LogInformation(TokenLogMessages.IDX10242, jwtToken.EncodedToken);
-                        jwtToken.SigningKey = key;
-                        return jwtToken;
-                    }
-
+                    // TODO - if the key matches, they try it right away
+                    //if (ValidateSignature(jwtToken._hpUtf8Bytes, jwtToken._sBytes, key, jwtToken.Alg, jwtToken, validationParameters))
+                    //{
+                    //    LogHelper.LogInformation(TokenLogMessages.IDX10242, jwtToken.EncodedToken);
+                    //    jwtToken.SigningKey = key;
+                    //    return jwtToken;
+                    //}
                     kidMatched = true;
                     keys = new List<SecurityKey> { key };
                 }
