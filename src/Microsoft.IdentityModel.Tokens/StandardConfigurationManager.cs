@@ -37,12 +37,12 @@ namespace Microsoft.IdentityModel.Tokens
     /// Represents a generic configuration manager.
     /// </summary>
     public abstract class StandardConfigurationManager
-        
-
     {
-        private TimeSpan _automaticRefreshInterval = DefaultAutomaticRefreshInterval;
+        private static TimeSpan _jitter = new TimeSpan(0, 1, 0, 0);
+        private TimeSpan _automaticRefreshInterval = DefaultAutomaticRefreshInterval.Add(TimeSpan.FromMinutes(new Random().Next((int)_jitter.TotalMinutes)));
         private TimeSpan _refreshInterval = DefaultRefreshInterval;
-
+        private TimeSpan _lkgLifetime = DefaultLKGLifetime;
+       
         /// <summary>
         /// Gets or sets the <see cref="TimeSpan"/> that controls how often an automatic metadata refresh should occur.
         /// </summary>
@@ -64,9 +64,14 @@ namespace Microsoft.IdentityModel.Tokens
         public StandardConfiguration CurrentConfiguration { get; set; }
 
         /// <summary>
-        /// 12 hours is the default time interval that afterwards, <see cref="GetGeneralConfigurationAsync(CancellationToken)"/> will obtain new configuration.
+        /// 12 hours is the default time interval that afterwards, <see cref="GetStandardConfigurationAsync(CancellationToken)"/> will obtain new configuration.
         /// </summary>
         public static readonly TimeSpan DefaultAutomaticRefreshInterval = new TimeSpan(0, 12, 0, 0);
+
+        /// <summary>
+        /// 1 hour is the default time interval that an LKG will last for.
+        /// </summary>
+        public static readonly TimeSpan DefaultLKGLifetime = new TimeSpan(0, 0, 5, 0);
 
         /// <summary>
         /// 5 minutes is the default time interval that must pass for <see cref="RequestRefresh"/> to obtain a new configuration.
@@ -78,6 +83,21 @@ namespace Microsoft.IdentityModel.Tokens
         /// </summary>
         public StandardConfiguration LKGConfiguration { get; set; }
 
+
+        /// <summary>
+        /// The minimum time between retrievals, in the event that a retrieval failed, or that a refresh was explicitly requested.
+        /// </summary>
+        public TimeSpan LKGLifetime
+        {
+            get { return _lkgLifetime; }
+            set
+            {
+                if (value < TimeSpan.Zero)
+                    throw LogHelper.LogExceptionMessage(new ArgumentOutOfRangeException(nameof(value), LogHelper.FormatInvariant(LogMessages.IDX10108, value)));
+
+                _lkgLifetime = value;
+            }
+        }
         /// <summary>
         /// 5 minutes is the minimum value for automatic refresh. <see cref="AutomaticRefreshInterval"/> can not be set less than this value.
         /// </summary>
@@ -119,7 +139,7 @@ namespace Microsoft.IdentityModel.Tokens
         /// </summary>
         /// <param name="cancel">CancellationToken</param>
         /// <returns>Configuration of type Configuration.</returns>
-        public abstract Task<StandardConfiguration> GetGeneralConfigurationAsync(CancellationToken cancel);
+        public abstract Task<StandardConfiguration> GetStandardConfigurationAsync(CancellationToken cancel);
 
         /// <summary>
         /// Indicate that the configuration may be stale (as indicated by failing to process incoming tokens).

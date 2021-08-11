@@ -27,10 +27,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.IdentityModel.Json;
 using Microsoft.IdentityModel.Json.Linq;
 using Microsoft.IdentityModel.Logging;
@@ -984,6 +987,122 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             }
             catch (Exception ex)
             {
+                return new TokenValidationResult
+                {
+                    Exception = ex,
+                    IsValid = false
+                };
+            }
+        }
+
+        /// <summary>
+        /// Validates a JWS or a JWE.
+        /// </summary>
+        /// <param name="token">A 'JSON Web Token' (JWT) in JWS or JWE Compact Serialization Format.</param>
+        /// <param name="validationParameters">A <see cref="TokenValidationParameters"/>  required for validation.</param>
+        /// <param name="configurationManager">A <see cref="StandardConfigurationManager"/> used for validation of the issuer and associated signing keys.</param>
+        /// <returns>A <see cref="TokenValidationResult"/></returns>
+        public virtual async Task<TokenValidationResult> ValidateToken(string token, TokenValidationParameters validationParameters, StandardConfigurationManager configurationManager)
+        {
+            if (string.IsNullOrEmpty(token))
+                return new TokenValidationResult { Exception = LogHelper.LogArgumentNullException(nameof(token)), IsValid = false };
+
+            if (validationParameters == null)
+                return new TokenValidationResult { Exception = LogHelper.LogArgumentNullException(nameof(validationParameters)), IsValid = false };
+
+            if (configurationManager == null)
+                return new TokenValidationResult { Exception = LogHelper.LogArgumentNullException(nameof(configurationManager)), IsValid = false };
+
+            if (token.Length > MaximumTokenSizeInBytes)
+                return new TokenValidationResult { Exception = LogHelper.LogExceptionMessage(new ArgumentException(LogHelper.FormatInvariant(TokenLogMessages.IDX10209, token.Length, MaximumTokenSizeInBytes))), IsValid = false };
+
+            var tokenParts = token.Split(new char[] { '.' }, JwtConstants.MaxJwtSegmentCount + 1);
+            if (tokenParts.Length != JwtConstants.JwsSegmentCount && tokenParts.Length != JwtConstants.JweSegmentCount)
+                return new TokenValidationResult { Exception = LogHelper.LogExceptionMessage(new ArgumentException(LogHelper.FormatInvariant(LogMessages.IDX14111, token))), IsValid = false };
+
+            var validationParametersWithConfiguration = validationParameters.Clone();
+            var configuration = await configurationManager.GetStandardConfigurationAsync(CancellationToken.None).ConfigureAwait(false);
+
+            // merge issuer and signing keys from the configuration with our TVP for easier validation
+            if (configuration != null)
+            {
+                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configuration.SigningKeys);
+                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configuration.Issuer });
+            }
+
+            try
+            {
+                if (tokenParts.Length == JwtConstants.JweSegmentCount)
+                {
+                    var jwtToken = new JsonWebToken(token);
+                    var decryptedJwt = DecryptToken(jwtToken, validationParameters);
+                    TokenValidationResult innerTokenValidationResult = null;
+                    try
+                    {
+                        var innerToken = ValidateSignature(decryptedJwt, validationParameters);
+                        jwtToken.InnerToken = innerToken;
+                        innerTokenValidationResult = ValidateTokenPayload(innerToken, validationParameters);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is SecurityTokenSignatureKeyNotFoundException || ex is SecurityTokenInvalidIssuerException)
+                        {
+                            if (configurationManager.UseLKG && configurationManager.LKGConfiguration != null)
+                            {
+                                // current configuration is invalid, do not continue using it
+                                configurationManager.UseCurrentConfiguration = false;
+                                // reset valifation parameters
+                                validationParametersWithConfiguration = validationParameters.Clone();
+                                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configurationManager.LKGConfiguration.SigningKeys);
+                                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configurationManager.LKGConfiguration.Issuer });
+                                // try validating again
+                                var innerToken = ValidateSignature(decryptedJwt, validationParameters);
+                                jwtToken.InnerToken = innerToken;
+                                innerTokenValidationResult = ValidateTokenPayload(innerToken, validationParameters);
+                            }
+                        }
+                    }
+
+                    configurationManager.LKGConfiguration = configurationManager.CurrentConfiguration;
+                    configurationManager.UseLKG = true;
+                    configurationManager.UseCurrentConfiguration = true;
+
+                    return new TokenValidationResult
+                    {
+                        SecurityToken = jwtToken,
+                        ClaimsIdentity = innerTokenValidationResult.ClaimsIdentity,
+                        IsValid = true,
+                        TokenType = innerTokenValidationResult.TokenType
+                    };
+                }
+                else
+                {
+                    try
+                    {
+                        var jsonWebToken = ValidateSignature(token, validationParameters);
+                        return ValidateTokenPayload(jsonWebToken, validationParameters);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is SecurityTokenSignatureKeyNotFoundException || ex is SecurityTokenInvalidIssuerException)
+                        {
+                            if (configurationManager.UseLKG && configurationManager.LKGConfiguration != null)
+                            {
+                                // reset validation parameters
+                                validationParametersWithConfiguration = validationParameters.Clone();
+                                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configurationManager.LKGConfiguration.SigningKeys);
+                                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configurationManager.LKGConfiguration.Issuer });
+                                // try validating again
+                                var jsonWebToken = ValidateSignature(token, validationParameters);
+                                return ValidateTokenPayload(jsonWebToken, validationParameters);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                configurationManager.UseCurrentConfiguration = false;
                 return new TokenValidationResult
                 {
                     Exception = ex,
