@@ -40,7 +40,7 @@ namespace Microsoft.IdentityModel.Protocols
     /// </summary>
     /// <typeparam name="T">The type of <see cref="IDocumentRetriever"/>.</typeparam>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
-    public class ConfigurationManager<T> : StandardConfigurationManager, IConfigurationManager<T> where T : StandardConfiguration
+    public class ConfigurationManager<T> : StandardConfigurationManager, IConfigurationManager<T> where T : class
     {
         private static TimeSpan _jitter = new TimeSpan(0,1,0,0);
         private TimeSpan _automaticRefreshInterval = DefaultAutomaticRefreshInterval.Add(TimeSpan.FromMinutes(new Random().Next((int)_jitter.TotalMinutes)));
@@ -142,7 +142,7 @@ namespace Microsoft.IdentityModel.Protocols
                     {
                         // Don't use the individual CT here, this is a shared operation that shouldn't be affected by an individual's cancellation.
                         // The transport should have it's own timeouts, etc..
-                        CurrentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false);
+                        CurrentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false) as StandardConfiguration;
                         Contract.Assert(CurrentConfiguration != null);
                         _lastRefresh = now;
                         _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval);
@@ -194,7 +194,7 @@ namespace Microsoft.IdentityModel.Protocols
                     {
                         // Don't use the individual CT here, this is a shared operation that shouldn't be affected by an individual's cancellation.
                         // The transport should have it's own timeouts, etc..
-                        CurrentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false);
+                        CurrentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false) as StandardConfiguration;
                         Contract.Assert(CurrentConfiguration != null);
                         _lastRefresh = now;
                         _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval);
