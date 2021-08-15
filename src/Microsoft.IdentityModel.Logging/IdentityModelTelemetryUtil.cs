@@ -118,6 +118,11 @@ namespace Microsoft.IdentityModel.Logging
             return telemetryData.TryRemove(key, out _);
         }
 
+        internal static void SetTelemetryData(HttpRequestMessage request)
+        {
+            SetTelemetryData(request, new Dictionary<string, string>());
+        }
+
         internal static void SetTelemetryData(HttpRequestMessage request, IDictionary<string, string> additionalHeaders)
         {
             if (request == null)
