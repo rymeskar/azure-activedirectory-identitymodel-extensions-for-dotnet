@@ -42,7 +42,9 @@ namespace Microsoft.IdentityModel.Tokens
         private TimeSpan _automaticRefreshInterval = DefaultAutomaticRefreshInterval.Add(TimeSpan.FromMinutes(new Random().Next((int)_jitter.TotalMinutes)));
         private TimeSpan _refreshInterval = DefaultRefreshInterval;
         private TimeSpan _lkgLifetime = DefaultLKGLifetime;
-       
+        private StandardConfiguration _lkgConfiguration;
+        private DateTimeOffset _lastLKGUse = DateTimeOffset.MaxValue;
+
         /// <summary>
         /// Gets or sets the <see cref="TimeSpan"/> that controls how often an automatic metadata refresh should occur.
         /// </summary>
@@ -78,14 +80,19 @@ namespace Microsoft.IdentityModel.Tokens
         /// </summary>
         public static readonly TimeSpan DefaultRefreshInterval = new TimeSpan(0, 0, 5, 0);
 
+
+        /// <summary>
+        /// A property that represents the last time the LKG was accessed
+        /// </summary>
+        public DateTimeOffset LKGLastAccess { get; set; } = DateTimeOffset.MinValue;
+
         /// <summary>
         /// The last known good configuration (a configuration retrieved in the past that we were able to successfully validate a token against).
         /// </summary>
         public StandardConfiguration LKGConfiguration { get; set; }
 
-
         /// <summary>
-        /// The minimum time between retrievals, in the event that a retrieval failed, or that a refresh was explicitly requested.
+        /// The length of time that an LKG configuration is valid for.
         /// </summary>
         public TimeSpan LKGLifetime
         {
@@ -98,6 +105,7 @@ namespace Microsoft.IdentityModel.Tokens
                 _lkgLifetime = value;
             }
         }
+
         /// <summary>
         /// 5 minutes is the minimum value for automatic refresh. <see cref="AutomaticRefreshInterval"/> can not be set less than this value.
         /// </summary>
@@ -131,7 +139,7 @@ namespace Microsoft.IdentityModel.Tokens
         /// <summary>
         /// Indicates whether the LKG can be used, false by default.
         /// </summary>
-        public bool UseLKG { get; set; } = false;
+        public bool UseLKG => LKGConfiguration != null && LKGLastAccess + LKGLifetime < DateTime.UtcNow;
 
         /// <summary>
         /// Obtains an updated version of <see cref="StandardConfiguration"/> if the appropriate refresh interval has passed.

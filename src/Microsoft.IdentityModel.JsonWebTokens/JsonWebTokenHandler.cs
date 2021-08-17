@@ -1026,8 +1026,8 @@ namespace Microsoft.IdentityModel.JsonWebTokens
             // merge issuer and signing keys from the configuration with our TVP for easier validation
             if (configuration != null)
             {
-                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configuration.SigningKeys);
-                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configuration.Issuer });
+                validationParametersWithConfiguration.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configuration.SigningKeys);
+                validationParametersWithConfiguration.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configuration.Issuer });
             }
 
             try
@@ -1043,28 +1043,19 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                         jwtToken.InnerToken = innerToken;
                         innerTokenValidationResult = ValidateTokenPayload(innerToken, validationParameters);
                     }
-                    catch (Exception ex)
+                    catch (SecurityTokenSignatureKeyNotFoundException ex)
                     {
-                        if (ex is SecurityTokenSignatureKeyNotFoundException || ex is SecurityTokenInvalidIssuerException)
-                        {
-                            if (configurationManager.UseLKG && configurationManager.LKGConfiguration != null)
-                            {
-                                // current configuration is invalid, do not continue using it
-                                configurationManager.UseCurrentConfiguration = false;
-                                // reset valifation parameters
-                                validationParametersWithConfiguration = validationParameters.Clone();
-                                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configurationManager.LKGConfiguration.SigningKeys);
-                                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configurationManager.LKGConfiguration.Issuer });
-                                // try validating again
-                                var innerToken = ValidateSignature(decryptedJwt, validationParameters);
-                                jwtToken.InnerToken = innerToken;
-                                innerTokenValidationResult = ValidateTokenPayload(innerToken, validationParameters);
-                            }
-                        }
+                        configurationManager.UseCurrentConfiguration = false;
+                        return RevalidateUsingLKG(token, validationParameters, configurationManager, ex);
+                    }
+                    catch (SecurityTokenInvalidIssuerException ex)
+                    {
+                        configurationManager.UseCurrentConfiguration = false;
+                        return RevalidateUsingLKG(token, validationParameters, configurationManager, ex);
                     }
 
+                    // set LKG
                     configurationManager.LKGConfiguration = configurationManager.CurrentConfiguration;
-                    configurationManager.UseLKG = true;
                     configurationManager.UseCurrentConfiguration = true;
 
                     return new TokenValidationResult
@@ -1082,33 +1073,53 @@ namespace Microsoft.IdentityModel.JsonWebTokens
                         var jsonWebToken = ValidateSignature(token, validationParameters);
                         return ValidateTokenPayload(jsonWebToken, validationParameters);
                     }
-                    catch (Exception ex)
+                    catch (SecurityTokenSignatureKeyNotFoundException ex)
                     {
-                        if (ex is SecurityTokenSignatureKeyNotFoundException || ex is SecurityTokenInvalidIssuerException)
-                        {
-                            if (configurationManager.UseLKG && configurationManager.LKGConfiguration != null)
-                            {
-                                // reset validation parameters
-                                validationParametersWithConfiguration = validationParameters.Clone();
-                                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configurationManager.LKGConfiguration.SigningKeys);
-                                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configurationManager.LKGConfiguration.Issuer });
-                                // try validating again
-                                var jsonWebToken = ValidateSignature(token, validationParameters);
-                                return ValidateTokenPayload(jsonWebToken, validationParameters);
-                            }
-                        }
+                        configurationManager.UseCurrentConfiguration = false;
+                        return RevalidateUsingLKG(token, validationParameters, configurationManager, ex);
+                    }
+                    catch (SecurityTokenInvalidIssuerException ex)
+                    {
+                        configurationManager.UseCurrentConfiguration = false;
+                        return RevalidateUsingLKG(token, validationParameters, configurationManager, ex);
                     }
                 }
             }
             catch (Exception ex)
             {
-                configurationManager.UseCurrentConfiguration = false;
                 return new TokenValidationResult
                 {
                     Exception = ex,
                     IsValid = false
                 };
             }
+        }
+
+        private TokenValidationResult RevalidateUsingLKG(string token, TokenValidationParameters validationParameters, StandardConfigurationManager configurationManager, Exception ex)
+        {
+            if (configurationManager.UseLKG)
+            {
+                // current configuration is invalid, do not continue using it
+                configurationManager.UseCurrentConfiguration = false;
+
+                // update the LKG access time only if it has not been updated before
+                if (configurationManager.LKGLastAccess == DateTime.MinValue)
+                    configurationManager.LKGLastAccess = DateTime.UtcNow;
+
+                // reset validation parameters
+                var validationParametersWithConfiguration = validationParameters.Clone();
+                validationParameters.IssuerSigningKeys = validationParameters.IssuerSigningKeys.Concat(configurationManager.LKGConfiguration.SigningKeys);
+                validationParameters.ValidIssuers = validationParameters.ValidIssuers.Concat(new Collection<string>() { configurationManager.LKGConfiguration.Issuer });
+                // try validating again
+                var jsonWebToken = ValidateSignature(token, validationParametersWithConfiguration);
+                return ValidateTokenPayload(jsonWebToken, validationParametersWithConfiguration);
+            }
+
+            return new TokenValidationResult
+            {
+                Exception = ex,
+                IsValid = false
+            };
         }
 
         private TokenValidationResult ValidateTokenPayload(JsonWebToken jsonWebToken, TokenValidationParameters validationParameters)

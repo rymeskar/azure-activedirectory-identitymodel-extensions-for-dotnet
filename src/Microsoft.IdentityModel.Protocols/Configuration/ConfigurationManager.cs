@@ -45,7 +45,6 @@ namespace Microsoft.IdentityModel.Protocols
         private DateTimeOffset _syncAfter = DateTimeOffset.MinValue;
         private DateTimeOffset _lastRefresh = DateTimeOffset.MinValue;
         private bool _isFirstRefreshRequest = true;
-        private DateTimeOffset _lkgExpiration = DateTimeOffset.MinValue;
 
         private readonly SemaphoreSlim _refreshLock;
         private readonly string _metadataAddress;
@@ -143,11 +142,11 @@ namespace Microsoft.IdentityModel.Protocols
                         CurrentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false) as StandardConfiguration;
                         Contract.Assert(CurrentConfiguration != null);
                         _lastRefresh = now;
-                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval);
+                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, AutomaticRefreshInterval);
                     }
                     catch (Exception ex)
                     {
-                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval < _refreshInterval ? _automaticRefreshInterval : _refreshInterval);
+                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, AutomaticRefreshInterval < RefreshInterval ? AutomaticRefreshInterval : RefreshInterval);
                         if (CurrentConfiguration == null) // Throw an exception if there's no configuration to return.
                             throw LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX20803, (_metadataAddress ?? "null")), ex));
                         else
@@ -195,11 +194,11 @@ namespace Microsoft.IdentityModel.Protocols
                         CurrentConfiguration = await _configRetriever.GetConfigurationAsync(_metadataAddress, _docRetriever, CancellationToken.None).ConfigureAwait(false) as StandardConfiguration;
                         Contract.Assert(CurrentConfiguration != null);
                         _lastRefresh = now;
-                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval);
+                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, AutomaticRefreshInterval);
                     }
                     catch (Exception ex)
                     {
-                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, _automaticRefreshInterval < _refreshInterval ? _automaticRefreshInterval : _refreshInterval);
+                        _syncAfter = DateTimeUtil.Add(now.UtcDateTime, AutomaticRefreshInterval < RefreshInterval ? AutomaticRefreshInterval : RefreshInterval);
                         if (CurrentConfiguration == null) // Throw an exception if there's no configuration to return.
                             throw LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX20803, (_metadataAddress ?? "null")), ex));
                         else
